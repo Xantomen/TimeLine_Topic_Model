@@ -298,10 +298,9 @@ Timeline.Bar = function()
 			break;
 			
 			default:
+				self.moveDistance(0);
 				
-				
-				
-					
+							
 			 break;
 		}
 		
@@ -448,12 +447,18 @@ Timeline.Bar = function()
 		
 	}
 	
-	
+	this.deleteRaphaelPapers = function()
+	{
+		
+		self.leftpaper.remove();
+		self.rightpaper.remove();
+		
+	}
 		
 	this.resetBars = function()
 	{
 		self.deleteDateUnits();
-		
+		self.deleteRaphaelPapers();
 		//alert(self.rangeFrom + "eeee   " + self.rangeTo + "   ggg " + self.rangeCenter);
 		
 		
