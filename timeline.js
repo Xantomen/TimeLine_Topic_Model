@@ -6,6 +6,7 @@ $(document).ready(function () {
 	
 	$('body').click(function(){
 	
+	
 	//tm.actual_Zoom+=1;
 	
 	//tm.deleteDateUnits();
@@ -14,6 +15,7 @@ $(document).ready(function () {
 	//tm.moveDateUnits(-3);
 	
 	});
+	
 	
 });		
 
@@ -82,9 +84,11 @@ Timeline.Bar = function()
 	
 	this.date_Center_Number = 0;
 
-	this.rangeFrom = 0;
-	this.rangeTo = 0;
+	/*this.rangeFrom = 0;
+	this.rangeTo = 0;*/
 	this.rangeCenter = 0;
+	
+	this.movs_Per_Click = 1;
 
 	this.dateformat = function (timestamp)
 	{
@@ -134,8 +138,6 @@ Timeline.Bar = function()
 	    self.right_bar.attr("fill", "orange");
 	    //self.right_bar.node.id = "rightbar";
 	    
-	    
-
 		
 	},
 
@@ -144,7 +146,6 @@ Timeline.Bar = function()
 		var d = self.range.center;
 		var date_str = self.dateformat(d);	
 			
-		self.date_Center_Number = d;
 			
 		var s = '<div id = "timeline">';
 		
@@ -239,8 +240,7 @@ Timeline.Bar = function()
 
 	this.createBarRanges = function() {
 		
-		self.LeftRange = {};
-		self.RightRange = {};
+		
 		
 		self.LeftRange.range = self.number_Total_Units*self.atomic_Unit;
 		
@@ -257,8 +257,9 @@ Timeline.Bar = function()
 		self.RightRange.to = self.range.center + ((2 * self.number_Visible_Units)+1) * self.atomic_Unit;
 		
 		
-		self.moveBars(self.LeftRange.from,self.RightRange.from,0);
+		//self.moveBars(self.LeftRange.from,self.RightRange.from,0);
 		
+		self.setOriginalPositionBars();
 		
 	}
 
@@ -266,9 +267,9 @@ Timeline.Bar = function()
 	this.moveBars = function(tsleft,tsright,direction) {
 		
 				
-		var amount = self.pixels_Per_Unit * self.zoom_Value;
+		//var amount = //self.pixels_Per_Unit * self.zoom_Value;
 		
-		
+				
 		var tsunits = 0;
 				
 		switch(direction)
@@ -277,28 +278,28 @@ Timeline.Bar = function()
 			
 			case "left":
 			
-				self.date_Center_Number = self.date_Center_Number - self.atomic_Unit * self.zoom_Value;
-				tsunits=self.date_Center_Number;
+				
+				tsunits = - self.atomic_Unit * self.movs_Per_Click;
+				
+				
 				//tsunits = - self.atomicUnit * self.zoom_Value;/*tsunits= self.date_Center_Number - self.atomic_Unit * self.zoom_Value;				
 				//tsunits= tsunits - self.date_Center_Number;
-				self.moveDistance(-self.atomic_Unit*self.zoom_Value,tsunits);
+				self.moveDistance(tsunits);
 				
 			break;
 			
 			case "right":
 				
-				self.date_Center_Number = self.date_Center_Number + self.atomic_Unit * self.zoom_Value;
-				tsunits=self.date_Center_Number;
-				self.moveDistance(+amount,tsunits);
+				tsunits = + self.atomic_Unit * self.movs_Per_Click;
+				//self.date_Center_Number = self.date_Center_Number + self.atomic_Unit * self.zoom_Value;
+				//tsunits=self.date_Center_Number;
+				self.moveDistance(tsunits);
 				
 			break;
 			
 			default:
 				
-				$('#leftbar').css("left",self.originalPositionLeftBar);
-				$('#rightbar').css("left",self.originalPositionRightBar);
-				self.actualPositionLeftBar = self.originalPositionLeftBar;
-				self.actualPositionRightBar = self.originalPositionRightBar;
+				
 				
 					
 			 break;
@@ -306,7 +307,15 @@ Timeline.Bar = function()
 		
 	}
 
-	this.moveDistance = function(distance,tsunits) {
+	this.setOriginalPositionBars = function() {
+		
+		$('#leftbar').css("left",self.originalPositionLeftBar);
+		$('#rightbar').css("left",self.originalPositionRightBar);
+		self.actualPositionLeftBar = self.originalPositionLeftBar;
+		self.actualPositionRightBar = self.originalPositionRightBar;
+	}
+
+	this.moveDistance = function(tsunits) {
 		
 			
 			//$('#leftbar').css("left",parseFloat($('#leftbar').css("left"))+distance);
@@ -315,10 +324,11 @@ Timeline.Bar = function()
 			//self.actualPositionLeftBar += distance;
 			//self.actualPositionRightBar += distance;
 			
+			self.updateRangeValues(tsunits);
 			
-			$("#actual_date_text").text(self.dateformat(tsunits));
+			$("#actual_date_text").text(self.dateformat(self.range.center));
 						
-			self.updateRangeValues(distance);
+			
 			//alert($("#leftbar_container").css("width"));
 			//alert(parseInt($("#leftbar_container").css("width"))/self.number_Visible_Units);
 			//alert(distance);
@@ -438,21 +448,14 @@ Timeline.Bar = function()
 		
 	}
 	
-	this.deleteBarRanges = function() 
-	{
-		
-		self.leftpaper.left.remove();
-		self.rightpaper.right.remove();
-		
-	}
 	
+		
 	this.resetBars = function()
 	{
 		self.deleteDateUnits();
-		self.deleteBarRanges();
+		
 		//alert(self.rangeFrom + "eeee   " + self.rangeTo + "   ggg " + self.rangeCenter);
-		self.range = new Timeline.Range(self.rangeFrom, self.rangeTo);
-	
+		
 		
 		//self.paint_timeline();	
 		
@@ -460,12 +463,9 @@ Timeline.Bar = function()
 		self.updatePixels_Per_Unit();
 		
 		
-		self.updateOriginalPositionBars();
-		
-		
-				
+		//self.updateOriginalPositionBars();
+			
 		self.createBarRanges();
-	
 		
 		self.paint_bars();	
 		
@@ -491,8 +491,42 @@ Timeline.Bar = function()
 		
 	}*/
 
+	this.updateZoom = function()
+	{
+		
+		
+		switch(self.zoom_Value)
+		{
+			case 1:
+				self.number_Visible_Units = 4;
+				
+				break;
+			case 2:
+				self.number_Visible_Units = 8;
+				break;
+			case 3:
+				self.number_Visible_Units = 10;
+				break;
+			case 4:
+				self.number_Visible_Units = 12;
+				break;
+			default:
+				self.number_Visible_Units = 14;
+				self.zoom_Value = 0;
+				break;
+			
+		}
+		
+		self.zoom_Value +=1;
+		self.number_Total_Units = self.number_Visible_Units * 3;
+		self.moveBars(0,0,0);
+		
+		
+	}
+
 	this.updatePixels_Per_Unit = function() 
 	{
+		
 		
 		self.pixels_Per_Unit = (parseFloat($('#leftbar').css("width"))/self.number_Total_Units);
 				
@@ -509,16 +543,18 @@ Timeline.Bar = function()
 	this.updateRangeValues = function(tsunits)
 	{
 			
-		self.rangeFrom += tsunits;	
-		self.rangeTo += tsunits;
-		
-		self.rangeCenter = (self.rangeFrom + ((self.rangeTo - self.rangeFrom)*0.5) );	
-		
+		self.range.from += tsunits;	
+		self.range.to += tsunits;
+		self.range.center += tsunits;//(self.range.from + ((self.range.to - self.range.from)*0.5) );	
+
 	}
 
 	this.init = function()
 	{
-			
+		
+		self.LeftRange = {};
+		self.RightRange = {};
+		
 		var from = new Date("2013/01/01");
 		var to = new Date("2013/07/01");
 		
@@ -530,6 +566,7 @@ Timeline.Bar = function()
 	
 		self.rangeFrom = self.range.from;
 		self.rangeTo = self.range.to;
+		
 		self.rangeCenter = self.range.center;
 	
 		self.paint_timeline();	
@@ -545,6 +582,8 @@ Timeline.Bar = function()
 		//self.calculateNumberAndSizeUnits();
 		
 		self.createDateUnits(self.number_Total_Units);
+		
+		$('#actual_date_text').click(self.updateZoom);
 				
 		tm = this;
 	
