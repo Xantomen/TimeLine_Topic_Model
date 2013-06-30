@@ -1,0 +1,157 @@
+#body
+{
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	left: 0;
+	top: 0;	
+}
+
+#actual_date
+{
+	position: absolute;
+	margin: auto;
+	left: 0;
+	right: 0;
+	top: 0;
+	
+	width: 10%;
+	height: 100%;	
+	font-family: "Inconsolata";
+	text-align: center;
+	background: silver;
+	z-index: 2;
+}
+
+#actual_date_text
+{
+	margin: auto;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;	
+	display: block;
+	font-family: "Inconsolata";
+	text-align: center;
+	font-size: 130%;
+	height: 40%;
+}
+
+
+
+#timeline
+{
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 10%;
+	background: white;	
+	-moz-box-shadow:    0px -5px 4px rgba(128,128,128,0.4);
+	-webkit-box-shadow: 0px -5px 4px rgba(128,128,128,0.4);
+	box-shadow:         0px -5px 4px rgba(128,128,128,0.4);
+}
+
+#leftbar_container {
+	
+	position:absolute;
+	
+	overflow:hidden;
+	
+	width:40%;
+	height:100%;
+	
+	left:5%;
+	top:0%;
+	
+	border-radius: 2% 0px 0px 2%;
+	
+	background:green;	
+	
+	z-index:1;
+}
+
+#rightbar_container {
+	
+	position:absolute;
+	
+	overflow:hidden;
+	
+	width:40%;
+	height:100%;
+	
+	right:5%;
+	top:0%;
+	
+	background:green;	
+	
+	z-index:1;
+}
+
+#leftbar {
+	
+	position:absolute;
+	
+	top:0;
+	left:0;
+	
+	height:100%;
+	
+	background:blue;
+	z-index:0;
+}
+
+#rightbar {
+	
+	position:absolute;
+	
+	top:0;
+	left:0;
+	
+	height:100%;
+	
+	background:purple;
+	
+	z-index:0;
+}
+
+#leftarrow {
+	
+	position:absolute;
+	
+	top:30%;
+	left:0;
+	
+	
+		
+	height:auto;
+	width:auto;
+	
+	font-size:150%;
+	
+	background:yellow;
+	
+	z-index:2;
+}
+
+#rightarrow {
+	
+	position:absolute;
+	
+	top:30%;
+	right:0;
+	
+	
+		
+	height:auto;
+	width:auto;
+	
+	font-size:150%;
+	
+	background:yellow;
+	
+	z-index:2;
+	
+}
+

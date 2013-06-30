@@ -1,0 +1,4043 @@
+var ox, oy, ow, ox_target;
+
+var microfx_demonstration = null; // der Holder für die Demonstration
+
+
+this.cambrioF = function()
+{
+alert("Hallo Cambrio");
+
+
+var s = '<div id="exampleCanvasContainer"><canvas id="exampleCanvas" class="samplePic"></canvas></div>';
+
+$("body").append(s);
+
+
+cambrio = Caman("/InterfaceGenerator/Teufelsmoor.jpg", "#exampleCanvas", function () {
+this
+.saturation(20)
+
+.render();
+});
+
+alert("geschafft");
+}
+
+
+
+this.microfx_demo_playback = function(name)
+{
+
+var s = '<div id = "DemoKonsole">';
+
+s += '<div id = "DemoPlay" class = "DemoPlayAktiv"></div>';
+s += '<div id = "DemoStop" class = "DemoStop"></div>';
+s += '<div id = "DemoNextEvent"></div>';
+
+s += '</div>';
+
+$("body").append(s);
+
+$("#DemoKonsole").draggable();
+
+$("#DemoNextEvent").click(function(){
+
+
+
+microfx_demonstration.next_event();
+
+});
+
+
+$("#DemoPreviousEvent").click(function(){
+
+microfx_demonstration.previous_event();
+
+});
+
+
+
+
+
+
+$("#DemoPlay").click(function(){
+
+microfx_demonstration.meta_play();
+$("#DemoPlay").removeClass("DemoPlay");
+$("#DemoPlay").addClass("DemoPlayAktiv");
+$("#DemoStop").removeClass("DemoStopAktiv");
+$("#DemoStop").addClass("DemoStop");
+});
+
+
+
+$("#DemoStop").click(function(){
+
+microfx_demonstration.pause();
+
+$("#DemoPlay").removeClass("DemoPlayAktiv");
+$("#DemoPlay").addClass("DemoPlay");
+$("#DemoStop").removeClass("DemoStop");
+$("#DemoStop").addClass("DemoStopAktiv");
+});
+
+
+
+
+
+
+var url = "/engine/micro_patterns?search=" + name;
+
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+var p = new MicroFX.Player(0,0);
+microfx_demonstration = p;
+
+for (i = 0; i < 1; i++)
+{
+p.get_pattern(msg[i]);
+}
+
+
+if (p.active) alert("bin aktiv");
+
+});
+
+
+
+}
+
+
+
+
+function microfx_playback_range(name)
+{
+var url = "/engine/micro_patterns?search=" + name;
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+var p = new MicroFX.Player(0,0);
+microfx_demonstration = p;
+p.create_mode = false; // damit wird sichergesetellt, dass die DOM-Elemente entfernt werden
+
+for (i = 0; i < 1; i++)
+{
+p.get_pattern(msg[i], true);
+}
+
+p.stop();
+
+});
+
+
+}
+
+
+var microfx_active_patterns = new Array();
+
+
+function microfx_playback_stop(name)
+{
+for (pi = 0; pi < microfx_active_patterns.length; pi ++)
+{
+if (microfx_active_patterns[pi].pattern.attributes.key == name)
+{
+microfx_active_patterns[pi].quit();
+}
+}
+}
+
+
+function microfx_playback(name)
+{
+var url = "/engine/micro_patterns?search=" + name;
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+var p = new MicroFX.Player(0,0);
+microfx_active_patterns.push(p);
+
+// microfx_demonstration = p;
+
+p.create_mode = false; // damit wird sichergesetellt, dass die DOM-Elemente entfernt werden
+
+for (i = 0; i < 1; i++)
+{
+p.get_pattern(msg[i], true);
+}
+});
+}
+
+
+
+function rangedef_start(dx, dy)
+{
+if (MicroAdministrator.control == false)
+{
+ox = dx;
+}
+}
+
+function rangedef_move(dx, dy)
+{
+if (MicroAdministrator.control == false) ox_target = dx;
+}
+
+
+function rangedef_up()
+{
+if (MicroAdministrator.control == false)
+{
+MicroAdministrator.painter.paint_range(ox, ox_target);
+$("#MicroToolbar_Range").addClass("AktiveKlasse");
+}
+}
+
+
+
+function microfx_anim_start()
+{
+if (MicroAdministrator.animation_edit_mode == false){
+////////
+
+if (MicroAdministrator.control == false)
+{
+ox = this.attr("x");
+oy = this.attr("y");
+this.animate({opacity: .25}, 500, ">");
+}
+else
+{
+ow = this.attr("width");
+this.animate({opacity: .25}, 500, ">");
+
+}
+///////
+}
+}
+
+function microfx_anim_move(dx, dy)
+{
+if (MicroAdministrator.animation_edit_mode == false){
+////////
+
+if (MicroAdministrator.control == false)
+{
+this.attr({x: ox + dx});
+}
+else
+{
+if (MicroAdministrator.destroy == false) this.attr({width: ow + dx});
+else
+{
+this.remove();
+}
+}
+/////////////
+}
+}
+
+
+function microfx_anim_up()
+{
+if (MicroAdministrator.animation_edit_mode == false){
+////////
+
+if (MicroAdministrator.control == false && MicroAdministrator.destroy == false)
+{
+
+this.animate({opacity: 1.0}, 500, ">");
+
+event_id = $(this.node).attr("event_id");
+animation_id = $(this.node).attr("animation_id");
+
+
+
+ox = this.attr("x");
+prop = ox / window.innerWidth;
+
+
+ev = MicroAdministrator.find_event(event_id);
+
+start = parseInt(ev.attributes.duration*prop);
+
+data = {
+"micro_animation[id]" : ev.attributes.id,
+"micro_animation[offset]" : start,
+};
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_animations/"+ animation_id,
+success: function(msg){
+
+id = msg.micro_animation.id;
+an = MicroAdministrator.find_animation(id);
+
+an.attributes.offset = msg.micro_animation.offset;
+// alert(an.attributes.offset);
+}
+
+});
+
+
+
+}
+else
+{
+this.animate({opacity: 1.0}, 500, ">");
+event_id = $(this.node).attr("event_id");
+animation_id = $(this.node).attr("animation_id");
+w = this.attr("width");
+prop = w / window.innerWidth;
+ev = MicroAdministrator.find_event(event_id);
+duration = parseInt(ev.attributes.duration*prop);
+
+data = {
+"micro_animation[id]" : ev.attributes.id,
+"micro_animation[duration]" : duration,
+};
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_animations/"+ animation_id,
+success: function(msg){
+
+id = msg.micro_animation.id;
+an = MicroAdministrator.find_animation(id);
+
+an.attributes.duration = msg.micro_animation.duration;
+// alert(an.attributes.duration);
+}
+
+});
+
+
+}
+
+////////////////////////////////
+}
+}
+
+
+
+function microfx_range_start()
+{
+if (MicroAdministrator.control == false)
+{
+ox = this.attr("x");
+oy = this.attr("y");
+this.animate({opacity: .25}, 500, ">");
+}
+else
+{
+ow = this.attr("width");
+this.animate({opacity: .25}, 500, ">");
+
+}
+}
+
+function microfx_range_move(dx, dy)
+{
+if (MicroAdministrator.control == false)
+{
+this.attr({x: ox + dx});
+}
+else
+{
+if (MicroAdministrator.destroy == false) this.attr({width: ow + dx});
+else
+{
+this.remove();
+}
+}
+}
+
+function microfx_range_up()
+{
+if (MicroAdministrator.control == false && MicroAdministrator.destroy == false)
+{
+this.animate({opacity: 1.0}, 500, ">");
+
+event_id = $(this.node).attr("event_id");
+track_id = $(this.node).attr("track_id");
+
+
+track = MicroAdministrator.pattern.track_list.at(track_id);
+ev = track.event_list.at(event_id);
+
+
+ox = this.attr("x");
+prop = ox / window.innerWidth;
+
+track_start = $(this.node).attr("track_start");
+track_stop = $(this.node).attr("track_stop");
+
+duration = track_stop - track_start;
+
+start = (duration*prop);
+target = start + parseFloat(track_start);
+
+// Jetzt an die Datenbank schicken
+
+data = {
+"micro_event[id]" : ev.attributes.id,
+"micro_event[start]" : target,
+};
+
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_events/"+ ev.attributes.id,
+success: function(msg){
+
+id = msg.micro_event.id;
+ev = MicroAdministrator.find_event(id);
+ev.attributes.start = msg.micro_event.start;
+}
+
+});
+
+}
+else
+{
+if (MicroAdministrator.destroy == false)
+{
+
+this.animate({opacity: 1.0}, 500, ">");
+event_id = $(this.node).attr("event_id");
+track_id = $(this.node).attr("track_id");
+track = MicroAdministrator.pattern.track_list.at(track_id);
+ev = track.event_list.at(event_id);
+
+w = this.attr("width");
+prop = w / window.innerWidth;
+
+track_start = $(this.node).attr("track_start");
+track_stop = $(this.node).attr("track_stop");
+
+dur = parseInt(track_stop - track_start);
+duration = parseInt(dur*prop);
+
+data = {
+"micro_event[id]" : ev.attributes.id,
+"micro_event[duration]" : duration,
+};
+
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_events/"+ ev.attributes.id,
+success: function(msg){
+
+id = msg.micro_event.id;
+ev = MicroAdministrator.find_event(id);
+ev.attributes.duration = msg.micro_event.duration;
+}
+
+});
+
+
+}
+
+
+
+}
+
+}
+
+
+
+function microfx_start()
+{
+if (MicroAdministrator.control == false)
+{
+ox = this.attr("x");
+oy = this.attr("y");
+this.animate({opacity: .25}, 500, ">");
+}
+else
+{
+ow = this.attr("width");
+this.animate({opacity: .25}, 500, ">");
+
+}
+}
+
+
+function microfx_move(dx, dy)
+{
+if (MicroAdministrator.control == false)
+{
+this.attr({x: ox + dx});
+}
+else
+{
+if (MicroAdministrator.destroy == false) this.attr({width: ow + dx});
+else
+{
+this.remove();
+}
+}
+}
+
+
+function microfx_up()
+{
+if (MicroAdministrator.control == false && MicroAdministrator.destroy == false)
+{
+
+this.animate({opacity: 1.0}, 500, ">");
+
+event_id = $(this.node).attr("event_id");
+track_id = $(this.node).attr("track_id");
+
+
+track = MicroAdministrator.pattern.track_list.at(track_id);
+ev = track.event_list.at(event_id);
+
+
+ox = this.attr("x");
+prop = ox / window.innerWidth;
+start = parseInt(MicroAdministrator.pattern.attributes.duration*prop);
+
+
+
+data = {
+"micro_event[id]" : ev.attributes.id,
+"micro_event[start]" : start,
+};
+
+
+
+
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_events/"+ ev.attributes.id,
+success: function(msg){
+
+id = msg.micro_event.id;
+ev = MicroAdministrator.find_event(id);
+ev.attributes.start = msg.micro_event.start;
+}
+
+});
+
+}
+else
+{
+
+if (MicroAdministrator.destroy == false)
+{
+
+this.animate({opacity: 1.0}, 500, ">");
+event_id = $(this.node).attr("event_id");
+track_id = $(this.node).attr("track_id");
+track = MicroAdministrator.pattern.track_list.at(track_id);
+ev = track.event_list.at(event_id);
+
+w = this.attr("width");
+prop = w / window.innerWidth;
+
+duration = parseInt( MicroAdministrator.pattern.attributes.duration*prop );
+
+data = {
+"micro_event[id]" : ev.attributes.id,
+"micro_event[duration]" : duration,
+};
+
+
+jQuery.ajax({
+async:true,
+data:data,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_events/"+ ev.attributes.id,
+success: function(msg){
+
+id = msg.micro_event.id;
+ev = MicroAdministrator.find_event(id);
+ev.attributes.duration = msg.micro_event.duration;
+}
+
+});
+
+}
+
+
+
+}
+
+
+}
+
+
+MicroFX = {}
+
+MicroFX.temporal = null;
+
+MicroFX.SoundArray = new Array();
+
+
+
+/////////////////////////////////////////////
+
+
+MicroFX.Ressource = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+
+MicroFX.RessourceList = Backbone.Collection.extend({
+model : MicroFX.Ressource
+});
+
+
+MicroFX.TextEffect = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+MicroFX.TextEffectList = Backbone.Collection.extend({
+model : MicroFX.TextEffect
+});
+
+
+MicroFX.ImageEffect = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+MicroFX.ImageEffectList = Backbone.Collection.extend({
+model : MicroFX.TextEffect
+});
+
+
+
+
+
+
+MicroFX.RessourceManager = function(admin)
+{
+this.admin = admin;
+var self = this;
+
+this.ressource_list = null;
+this.text_effect_list = null;
+this.image_effect_list = null;
+
+this.show_textlayer = function()
+{
+$("#Ressource_Text").addClass("active_ressource");
+$("#Ressource_Image").removeClass("active_ressource");
+$("#TextEffects").fadeIn();
+
+$("#ImageEffects").fadeOut();
+}
+
+
+this.hide_textlayer = function()
+{
+$("#Ressource_Text").removeClass("active_ressource");
+$("#TextEffects").fadeOut();
+
+}
+
+
+this.show_imagefx_layer = function()
+{
+
+$("#ImageEffects").fadeIn();
+}
+
+
+this.hide_imagefx_layer = function()
+{
+$("#Ressource_ImageFX").removeClass("active_ressource");
+$("#ImageEffects").fadeOut();
+}
+
+
+
+this.init_image_effects = function()
+{
+var t = new MicroFX.ImageEffect();
+t.attributes.name = "FadeInOut";
+
+self.image_effect_list.add(t);
+
+
+var t = new MicroFX.ImageEffect();
+t.attributes.name = "ScaleOut";
+
+self.image_effect_list.add(t);
+
+
+
+var t = new MicroFX.ImageEffect();
+t.attributes.name = "ScaleIn";
+
+self.image_effect_list.add(t);
+
+
+
+}
+
+
+this.init_texteffects = function()
+{
+var t = new MicroFX.TextEffect();
+t.attributes.name = "FadeInOut";
+
+self.text_effect_list.add(t);
+
+
+t = new MicroFX.TextEffect();
+t.attributes.name = "BigTitle";
+self.text_effect_list.add(t);
+
+
+t = new MicroFX.TextEffect();
+t.attributes.name = "TitlingDown";
+self.text_effect_list.add(t);
+
+t = new MicroFX.TextEffect();
+t.attributes.name = "Rotation";
+self.text_effect_list.add(t);
+
+t = new MicroFX.TextEffect();
+t.attributes.name = "KingsizeLetters";
+self.text_effect_list.add(t);
+
+t = new MicroFX.TextEffect();
+t.attributes.name = "Typewriter";
+self.text_effect_list.add(t);
+}
+
+
+this.process_texteffects = function()
+{
+
+}
+
+this.paint_image_effects = function()
+{
+var s = "";
+
+for (q = 0; q < self.image_effect_list.length; q++)
+{
+t = self.image_effect_list.at(q);
+s += '<div class = "ImageEffect" id = "ImageEffect_' + q + '" title = "' + t.attributes.name + '" no = "' + q + '"></div>';
+}
+
+$("#ImageEffects").append(s);
+
+for (q = 0; q < self.text_effect_list.length; q++)
+{
+var name = "#ImageEffect_" + q;
+
+$(name).click(function(){
+
+n = parseInt( $(this).attr("no") );
+
+MicroAdministrator.call_image_effect(n);
+
+});
+
+
+}
+
+}
+
+
+this.paint_texteffects = function()
+{
+var s = "";
+
+for (q = 0; q < self.text_effect_list.length; q++)
+{
+t = self.text_effect_list.at(q);
+s += '<div class = "TextEffect" id = "TextEffect_' + q + '" title = "' + t.attributes.name + '" no = "' + q + '"></div>';
+}
+
+$("#TextEffects").append(s);
+
+for (q = 0; q < self.text_effect_list.length; q++)
+{
+var name = "#TextEffect_" + q;
+
+$(name).click(function(){
+
+n = parseInt( $(this).attr("no") );
+
+MicroAdministrator.call_text_effect(n);
+
+});
+
+
+}
+
+}
+
+
+
+
+
+
+this.init = function()
+{
+self.ressource_list = new MicroFX.RessourceList();
+self.text_effect_list = new MicroFX.TextEffectList();
+self.image_effect_list = new MicroFX.ImageEffectList();
+
+
+var s = '<div id = "RessourceManager">';
+
+s += '<div id = "RessourceToolbar">';
+
+s += '<div id = "Ressource_Image" class = "active_ressource"></div>';
+s += '<div id = "Ressource_Text"></div>';
+s += '<div id = "Ressource_ImageFX"></div>';
+
+s += '</div>';
+s += '<div id = "Ressources"></div>';
+s += '<div id = "TextEffects"></div>';
+s += '<div id = "ImageEffects"></div>';
+s += '</div>';
+
+$("body").append(s);
+$("#RessourceManager").hide();
+
+
+self.init_texteffects();
+self.paint_texteffects();
+
+self.init_image_effects();
+self.paint_image_effects();
+
+
+$("#Ressource_Image").click(function(){
+
+if ( $(this).hasClass("active_ressource") )
+{
+$(this).removeClass("active_ressource");
+}
+else
+{
+$(this).addClass("active_ressource");
+MicroAdministrator.ressource_manager.hide_textlayer();
+MicroAdministrator.ressource_manager.hide_imagefx_layer();
+}
+
+
+});
+
+
+$("#Ressource_ImageFX").click(function(){
+
+if ( $(this).hasClass("active_ressource") )
+{
+$(this).removeClass("active_ressource");
+}
+else
+{
+$(this).addClass("active_ressource");
+MicroAdministrator.ressource_manager.show_imagefx_layer();
+MicroAdministrator.ressource_manager.hide_textlayer();
+}
+
+
+});
+
+
+
+
+
+$("#Ressource_Text").click(function(){
+
+if ( $(this).hasClass("active_ressource") )
+{
+MicroAdministrator.ressource_manager.hide_textlayer();
+}
+else
+{
+MicroAdministrator.ressource_manager.show_textlayer();
+MicroAdministrator.ressource_manager.hide_imagefx_layer();
+}
+
+
+});
+
+
+}
+
+
+this.toggle = function()
+{
+
+if ( $("#RessourceManager").css("display") == "none")
+{
+MicroAdministrator.check_ressources();
+$("#RessourceManager").show();
+}
+else $("#RessourceManager").hide();
+}
+
+
+this.check_image = function(event)
+{
+var known = false;
+
+
+for (q = 0; q < self.ressource_list.length; q++)
+{
+r = self.ressource_list.at(q);
+if (r.attributes.image == event.attributes.image)
+{
+known = true;
+}
+
+}
+
+if (known == false)
+{
+r = new MicroFX.Ressource();
+r.attributes.typus = "image";
+r.attributes.image = event.attributes.image;
+r.attributes.event_id = event.attributes.id;
+
+self.ressource_list.add(r);
+}
+
+}
+
+
+this.assign_image = function(id)
+{
+
+}
+
+this.set_interaction = function(name)
+{
+n = "#" + name;
+
+$(n).click(function(){
+
+////
+var answer = confirm("Bild dem aktuellen Event zuweisen?")
+if (answer){
+
+id = $(this).attr("id");
+var s = parseInt( id.slice(4, id.length) );
+
+MicroAdministrator.assign_ressource(s);
+
+}
+
+///
+
+});
+
+}
+
+this.update_display = function()
+{
+$("#Ressources").html("");
+var s = "";
+
+for (m = 0; m < self.ressource_list.length; m++)
+{
+r = self.ressource_list.at(m);
+
+var id = "res_" + m;
+
+s += '<div id = "' + id + '" class = "Ressource" eventd_id = "' + r.attributes.event_id + '" >'
+
+
+s += '<img src = "' + r.attributes.image + '" />';
+s += '</div>';
+
+
+}
+
+$("#Ressources").append(s);
+
+
+for (m = 0; m < self.ressource_list.length; m++)
+{
+r = self.ressource_list.at(m);
+var id = "res_" + m;
+self.set_interaction(id);
+}
+
+
+
+}
+
+
+
+self.init();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////7
+
+MicroFX.InteractionLayer = function()
+{
+this.width;
+this.height;
+this.x;
+this.y;
+
+}
+
+
+MicroFX.InteractionHandler = function(admin)
+{
+
+var self = this;
+this.admin = admin;
+
+
+this.active_divs = new Array();
+
+this.editor = null;
+this.drag = null;
+
+this.dragstart_x = 0;
+this.dragstart_y = 0;
+
+this.orig_x = 0; // Die Position des InteraktionsLayers
+this.orig_y = 0;
+
+this.pos_x;
+this.pos_y;
+
+this.oldpos_x;
+this.oldpos_y;
+
+this.diffx = 0;
+this.diffy = 0;
+
+this.processing = false;
+this.process_type = null;
+
+this.actual_div = null;
+
+this.initialized = false;
+
+
+this.register = function(div)
+{
+self.actual_div = $(div);
+self.copy_div(div);
+self.show();
+}
+
+
+
+this.drag_callback = function()
+{
+
+// self.editor.draggable();
+
+$(".micro_drag_handler").draggable({
+start: function(event, ui)
+{
+
+MicroAdministrator.interactor.editor.dragstart_x = event.clientX;
+MicroAdministrator.interactor.editor.dragstart_y = event.clientY;
+
+
+},
+
+drag: function(event, ui)
+{
+diffx = event.clientX - MicroAdministrator.interactor.dragstart_x;
+diffy = event.clientY - MicroAdministrator.interactor.dragstart_y;
+
+MicroAdministrator.interactor.editor.css("left", MicroAdministrator.interactor.orig_x + diffx) ;
+MicroAdministrator.interactor.editor.css("top", MicroAdministrator.interactor.orig_y + diffy) ;
+},
+
+stop :function(event, ui)
+{
+MicroAdministrator.interactor.editor.orig_x = event.clientX;
+MicroAdministrator.interactor.editor.orig_y = event.clientY;
+}
+
+});
+}
+
+
+this.init_mouse_pos = function()
+{
+self.processing = true;
+
+self.pos_x = mouseX;
+self.pos_y = mouseY;
+
+
+self.oldpos_x = mouseX;
+self.oldpos_y = mouseY;
+
+console.log("Anfangs Maus");
+}
+
+
+this.mouse_pos = function()
+{
+if (self.processing == false) self.init_mouse_pos();
+
+self.pos_x = mouseX;
+self.pos_y = mouseY;
+
+self.diffx = self.pos_x - self.original_layer.x;
+self.diffy = self.pos_y - self.original_layer.y;
+
+self.shift_x = self.pos_x - self.oldpos_x;
+self.shift_y = self.pos_y - self.oldpos_y;
+
+
+self.oldpos_x = mouseX;
+self.oldpos_y = mouseY;
+
+
+
+console.log (self.shift_x );
+}
+
+
+this.copy_div = function(div)
+{
+x = $(div).css("left");
+self.editor.css("left", x);
+
+y = $(div).css("top");
+self.editor.css("top", y);
+
+w = $(div).width();
+self.editor.css("width", w);
+
+h = $(div).height();
+self.editor.css("height", h);
+
+}
+
+
+this.show = function()
+{
+self.editor.show();
+}
+
+
+this.hide = function()
+{
+self.editor.hide();
+}
+
+
+this.check_finish = function()
+{
+if (self.processing == true)
+{
+self.processing = false;
+
+if (self.process_type == "enlarge")
+{
+self.original_layer.width = self.editor.width();
+self.original_layer.height = self.editor.height();
+}
+
+
+if (self.process_type == "position")
+{
+// alert("Aktualisieren der Position");
+
+self.original_layer.x = self.editor.position().left;
+self.original_layer.y = self.editor.position().top;
+}
+
+console.log("Ende des Prozesses");
+}
+}
+
+
+
+this.process = function()
+{
+if (self.admin.marker_mode == true)
+{
+
+if (self.admin.shift_key == true || self.admin.control == true)
+{
+self.mouse_pos();
+if (self.admin.shift_key == true)
+{
+self.process_type = "enlarge";
+
+w = self.editor.width();
+w += self.shift_x;
+
+h = self.editor.height();
+h += self.shift_y;
+
+self.editor.css("width", w);
+self.editor.css("height", h);
+
+self.actual_div.css("width", w);
+self.actual_div.css("height", h);
+
+}
+
+if (self.admin.control == true)
+{
+self.process_type = "position";
+
+x = self.editor.position().left;
+x += self.shift_x;
+
+y = self.editor.position().top;
+y += self.shift_y;
+
+
+self.editor.css("left", x);
+self.editor.css("top", y);
+
+self.actual_div.css("left", x);
+self.actual_div.css("top", y);
+}
+
+
+}
+else self.check_finish();
+
+
+}
+}
+
+this.update_event = function()
+{
+id = $(self.actual_div).attr("id");
+event_no = id.slice(3, id.length);
+
+no = parseInt(event_no);
+
+event = self.admin.find_event(no);
+
+var data =
+{
+
+};
+
+data.width = $(self.actual_div).width() / window.innerWidth * 100;
+data.height = $(self.actual_div).height() / window.innerHeight * 100;
+
+data.x = $(self.actual_div).position().left / window.innerWidth * 100;
+data.y = $(self.actual_div).position().top / window.innerHeight * 100;
+
+
+transfer = {
+"micro_event[id]" : no,
+"micro_event[param5]" : data.x,
+"micro_event[param6]" : data.y,
+"micro_event[param7]" : data.width,
+"micro_event[param8]" : data.height,
+};
+
+
+jQuery.ajax({
+async:true,
+data: transfer,
+dataType:'json',
+type:'put',
+url:"/authoring/micro_events/"+ no,
+success: function(msg){
+
+alert("erfolgreich aktualisiert");
+}
+
+});
+
+
+}
+
+
+this.get_animation = function()
+{
+alert("sollte die Animation abholen");
+
+id = $(self.actual_div).attr("id");
+event_no = id.slice(3, id.length);
+}
+
+
+this.update_animation = function()
+{
+id = $(self.actual_div).attr("id");
+event_no = id.slice(3, id.length);
+
+no = parseInt(event_no);
+
+event = self.admin.find_event(no);
+
+var data =
+{
+
+};
+
+data.width = $(self.actual_div).width() / window.innerWidth * 100;
+data.height = $(self.actual_div).height() / window.innerHeight * 100;
+
+data.x = $(self.actual_div).position().left / window.innerWidth * 100;
+data.y = $(self.actual_div).position().top / window.innerHeight * 100;
+
+
+self.admin.automatic_animation_update(event, data);
+
+}
+
+
+this.create_interaction_layer = function()
+{
+self.initialized = true;
+
+var s = '<div id = "interaction_layer">';
+s += '<div class = "micro_edit_handler"></div>';
+s += '<div class = "micro_submit_handler"></div>';
+s += '<div class = "micro_prop_handler"></div>';
+
+s += '</div>';
+
+
+
+$("body").append(s);
+
+
+self.editor = $("#interaction_layer");
+
+self.original_layer = new MicroFX.InteractionHandler();
+self.original_layer.x = self.editor.position().left;
+self.original_layer.y = self.editor.position().top;
+
+self.original_layer.width = self.editor.width();
+self.original_layer.height = self.editor.height();
+
+
+self.orig_x = self.editor.position().left;
+self.orig_y = self.editor.position().top;
+
+self.hide();
+
+
+$(".micro_edit_handler").click(function()
+{
+MicroAdministrator.interactor.get_animation();
+
+});
+
+
+$(".micro_prop_handler").click(function()
+{
+MicroAdministrator.interactor.update_animation();
+
+});
+
+
+$(".micro_submit_handler").click(function()
+{
+MicroAdministrator.interactor.update_event();
+
+});
+
+
+}
+
+
+this.hide = function()
+{
+self.editor.hide();
+}
+
+this.check_div = function(div)
+{
+var active = null;
+
+for (q = 0; q < self.active_divs.length; q++)
+{
+if (self.active_divs[q] == div)
+{
+active = self.active_divs[q];
+}
+}
+
+if (active == null)
+{
+if (self.initialized == false) self.create_interaction_layer();
+}
+
+return active;
+}
+
+
+
+
+
+this.init = function()
+{
+
+}
+
+
+self.init();
+}
+
+
+
+
+
+
+////////////////// Das MicroFX - Dialogfeld //
+MicroFX.Dialog = function()
+{
+var obj = this;
+
+this.actual_command = null;
+
+this.show_dialog = function()
+{
+
+}
+
+this.init = function()
+{
+var s = '<div id = "MicroDialog">';
+
+s += '<div id = "MicroDialogDescription" class = "Description">Beschreibung</div>';
+
+s += '<input type="text" id="MicroDialogInput" />';
+
+s += '<div id = "DialogSubmit"></div>';
+
+
+s += '</div>';
+
+
+$("body").append(s);
+
+
+$("#DialogSubmit").click( function(){
+
+
+MicroAdministrator.param = 1;
+
+
+eval(obj.actual_command);
+});
+
+
+
+}
+
+
+this.show = function()
+{
+$("#MicroDialog").fadeIn();
+}
+
+this.hide = function()
+{
+$("#MicroDialog").fadeOut();
+}
+
+
+this.set_command = function(description, command)
+{
+obj.actual_command = command;
+$("#MicroDialogDescription").html(description);
+}
+
+
+obj.init();
+}
+
+
+
+
+function get_dimension(min,max)
+{
+range = max - min;
+var max_grid = 12;
+var min_grid = 5;
+range_min = range / max_grid;
+range_max = range / min_grid;
+
+var numbers = [1,2,5]
+
+var cond = true;
+while (cond==true)
+{
+if (range_max < numbers[0]) {numbers[0]=numbers[0]*0.1; numbers[1]=numbers[1]*0.1; numbers[2]=numbers[2]*0.1}
+else {
+
+if (range_min > numbers[2]) {numbers[0]=numbers[0]*10; numbers[1]=numbers[1]*10; numbers[2]=numbers[2]*10}
+else cond=false;
+}
+}
+
+var result = null;
+
+for (i=0; i<3; i++)
+
+{
+if (range_min<numbers[i]&&range_max>numbers[i]) result = numbers[i]
+
+}
+
+if (result == null)
+{
+result = numbers[0] *10;
+}
+return result;
+}
+
+
+
+
+
+MicroFX.Pattern = Backbone.Model.extend({
+
+initialize : function()
+{
+this.track_list = new MicroFX.TrackList();
+},
+});
+
+
+MicroFX.PatternList = Backbone.Collection.extend({
+model : MicroFX.Pattern
+});
+
+
+/// Tracks ////////
+
+MicroFX.Track = Backbone.Model.extend({
+
+duration: 10000,
+
+initialize : function()
+{
+this.event_list = new MicroFX.EventList();
+},
+});
+
+
+MicroFX.TrackList = Backbone.Collection.extend({
+model : MicroFX.Track
+});
+
+// Events ////////
+
+MicroFX.Event = Backbone.Model.extend({
+
+initialize : function()
+{
+this.animation_list = new MicroFX.AnimationList();
+this.anim_list = new Array();
+},
+});
+
+
+MicroFX.EventList = Backbone.Collection.extend({
+model : MicroFX.Event
+});
+
+// Animation
+
+MicroFX.Animation = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+
+MicroFX.AnimationList = Backbone.Collection.extend({
+model : MicroFX.Animation
+});
+
+
+
+MicroFX.Sound = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+
+MicroFX.SoundList = Backbone.Collection.extend({
+model : MicroFX.Sound
+});
+
+
+var microfx_soundlist = new MicroFX.SoundList();
+
+
+
+MicroFX.Javascript = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+
+MicroFX.CSS = Backbone.Model.extend({
+
+initialize : function()
+{
+},
+});
+
+
+
+//////////////////////////////////////////////////////////
+
+MicroFX.Filter = {}
+
+MicroFX.Filter.greyscale = function(data)
+{
+for(var i = 0; i < data.length; i += 4) {
+var brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+data[i] = brightness;
+// red
+data[i + 1] = brightness;
+// green
+data[i + 2] = brightness;
+// blue
+// i+3 is alpha (the fourth element)
+}
+}
+
+
+MicroFX.Filter.updown = function(data, percent, imageData)
+{
+line = parseInt(imageData.height* parseFloat(percent) );
+offset = line * imageData.width * 4;
+alert("line " + line + " offset " + offset);
+
+var a = new Array();
+var b = new Array();
+
+for (k = 0; k < offset; k++)
+{
+a.push( data[k] );
+}
+
+for (k = offset; k < data.length; k++)
+{
+b.push( data[k] );
+}
+
+
+
+second = b.length;
+alert("a " + a.length + " b: " + b.length + " second " + second + " data " + data.length);
+
+
+for (k = 0; k < second; k++)
+{
+data[k]= b[k];
+}
+
+for (j = second; j < data.length; j++)
+{
+data[j]= a[j-second];
+}
+
+}
+
+
+MicroFX.Filter.tapestry = function(data, percent, imageData)
+{
+line = parseInt(imageData.height* parseFloat(percent) );
+offset = line * imageData.width * 4;
+
+newline = new Array();
+
+for (q = offset; q < offset + imageData.width * 4; q++)
+{
+newline.push(data[q]);
+}
+
+var off = 0;
+
+for (q = offset + imageData.width * 4; q < data.length; q++)
+{
+data[q] = newline[off];
+off ++;
+
+if (off == newline.length) off = 0;
+}
+
+}
+
+
+
+MicroFX.Filter.invert = function(data)
+{
+for(var i = 0; i < data.length; i += 4) {
+
+data[i] = 255 - data[i];
+// red
+data[i + 1] = 255 - data[i + 1];
+// green
+data[i + 2] = 255 - data[i + 2];
+// blue
+// i+3 is alpha (the fourth element)
+}
+}
+
+
+
+MicroFX.Filter.sepia = function(data, sepia)
+{
+for(var i = 0; i < data.length; i += 4) {
+var brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+
+data[i] = sepia * data[i] + brightness* (1-sepia);
+// red
+data[i + 1] = brightness;
+// green
+data[i + 2] = brightness;
+// blue
+// i+3 is alpha (the fourth element)
+}
+}
+
+
+MicroFX.Filter.brightness = function(data, adjustment)
+{
+var d = data;
+for (var i=0; i<d.length; i+=4) {
+d[i] += adjustment;
+d[i+1] += adjustment;
+d[i+2] += adjustment;
+}
+return d;
+};
+
+
+
+MicroFX.Filter.noise = function(data, noise)
+{
+var d = data;
+for (var i=0; i<d.length; i+=4) {
+
+r = parseInt( Math.random() * noise) - noise;
+d[i] += r;
+
+g = parseInt( Math.random() * noise) - noise;
+d[i+1] += g;
+
+b = parseInt( Math.random() * noise) - noise;
+d[i+2] += b;
+}
+return d;
+};
+
+
+
+
+
+MicroFX.Filter.contrast = function(data, factor)
+{
+var d = data;
+for (var i=0; i<d.length; i+=4) {
+
+d[i] *= factor;
+d[i+1] *= factor;
+d[i+2] *= factor;
+
+
+
+}
+return d;
+}
+
+
+MicroFX.Filter.threshold = function(data, threshold) {
+
+
+
+
+var d = data;
+for (var i=0; i<d.length; i+=4) {
+
+var r = d[i];
+
+var g = d[i+1];
+var b = d[i+2];
+var v = (0.2126*r + 0.7152*g + 0.0722*b >= threshold) ? 255 : 0;
+d[i] = d[i+1] = d[i+2] = v
+}
+return data;
+};
+
+
+
+
+
+///////////////////////////////////////////////////////////
+
+
+MicroFX.GoogleMaps_Styler = function()
+{
+var obj = this;
+
+
+this.init = function()
+{
+
+}
+
+
+
+this.set_map = function(input)
+{
+
+
+
+
+
+var styles = [
+{
+stylers: [
+{ hue: "#000" },
+{ saturation: -70 }
+]
+},{
+featureType: "terrain",
+elementType: "geometry",
+stylers: [
+{ lightness: 10 },
+{ visibility: "simplified" }
+]
+},{
+featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "off" },
+{ lightness: -50 },
+]
+},
+{
+featureType: "water",
+stylers: [
+{ weight: 1 },
+{ visibility: "on" },
+{ hue: "#5e00ff" },
+{ color: "#ebfafa" }
+]
+},
+
+];
+
+
+
+var styles2 = [
+{
+stylers: [
+{ hue: "#000" },
+{ saturation: -70 }
+]
+},{
+featureType: "terrain",
+elementType: "geometry",
+stylers: [
+{ lightness: 10 },
+{ visibility: "simplified" }
+]
+},{
+featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "off" },
+{ lightness: -50 },
+]
+},
+{
+featureType: "water",
+stylers: [
+{ weight: 1 },
+{ visibility: "on" },
+{ hue: "#5e00ff" },
+{ color: "#ebfafa" }
+]
+},
+
+{
+featureType: "landscape.man_made",
+stylers: [
+{ weight: 1 },
+{ visibility: "on" },
+{ hue: "#5e00ff" },
+{ color: "#e2b080" }
+]
+},
+
+{
+featureType: "administrative.country",
+stylers: [
+{ visibility: "on" },
+{ hue: "FF0011" },
+{ color: "#a28a76" },
+{ weight: 1.1 }
+]
+}
+
+];
+
+
+var styles3 = [
+{
+stylers: [
+{ hue: "#000" },
+{ saturation: -70 }
+]
+},{
+featureType: "landscape",
+stylers: [
+{ lightness: 10 },
+{ visibility: "simplified"},
+{ hue: "#b2ff00" },
+{ color: "#161616"},
+]
+},{
+featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "simplified" },
+{ lightness: -0 },
+{ weight: 0.1},
+{ color: "#161616"},
+]
+},
+{
+featureType: "road.highway",
+elementType: "labels",
+stylers: [
+{ visibility: "simplified" },
+{ saturation: -90 },
+{ lightness: -80 },
+{ gamma: 7.38 },
+]
+},
+{
+featureType: "road.arteial",
+elementType: "labels",
+stylers: [
+{ visibility: "simplified" },
+{ saturation: -90 },
+{ lightness: -80 },
+{ gamma: 7.38 },
+]
+},
+
+
+
+{
+featureType: "water",
+stylers: [
+{ weight: 0.2 },
+{ visibility: "on" },
+{ hue: "#5e00ff" },
+{ color: "#ebfafa" },
+{ gamma: 7.38 },
+]
+},
+
+{
+featureType: "landscape.man_made",
+stylers: [
+{ weight: 1 },
+{ visibility: "on" },
+{ hue: "#5e00ff" },
+{ color: "#e2b080" }
+]
+},
+
+{
+featureType: "administrative.country",
+stylers: [
+{ visibility: "on" },
+{ hue: "FF0011" },
+{ color: "#a28a76" },
+{ weight: 1.1 }
+]
+}
+
+];
+
+
+/////////// KOPIE ANFANG ///
+
+var landscape = [
+{
+featureType: "all",
+elementType: "all",
+stylers:
+[ { weight: 0.4 },
+{ saturation: -90 },
+{ lightness: -80 },
+{ gamma: 7.38 },
+{ visibility: "off" }
+
+] }
+
+
+];
+
+//////////// KOPIE ENDE ////
+
+
+
+
+
+
+
+
+/*/////////////////////////
+"elementType": "labels.text.stroke",
+"stylers": [ { "visibility": "off" }
+///////////////////////*/
+
+var complex_landscape = [
+{
+featureType: "landscape",
+stylers:
+[ { "color": "#282828" },
+{ visibility: "on" }
+
+] },
+
+{ elementType: "labels.text",
+stylers:
+[ { weight: 0.1 },
+{ color: "#ff0000" },
+{ gamma: 0.98 },
+{ visibility: "on" } ] } ,
+
+
+{ elementType: "abels.text.stroke",
+stylers:
+[
+{ visibility: "off" } ] } ,
+
+{ featureType: "road",
+stylers:
+[
+{ visibility: "off" } ] } ,
+
+{ featureType: "road.arterial",
+stylers:
+[
+{ weight: 0.1 },
+{ visibility: "on" } ] } ,
+
+{ featureType: "water",
+stylers:
+[
+{ color: "#000000" },
+{ visibility: "on" } ] } ,
+
+];
+
+
+
+
+///////////// KOPIE ANFANG ///////////
+var industrie = [
+{
+featureType: "landscape",
+stylers:
+[ { "color": "#282828" },
+{ visibility: "on" }
+
+] },
+
+{ elementType: "labels.text",
+stylers:
+[ { weight: 0.1 },
+{ color: "#ff0000" },
+{ gamma: 0.98 },
+{ visibility: "on" } ] } ,
+
+
+{ elementType: "abels.text.stroke",
+stylers:
+[
+{ visibility: "off" } ] } ,
+
+{ featureType: "road",
+stylers:
+[
+{ visibility: "off" } ] } ,
+
+{ featureType: "road.arterial",
+stylers:
+[
+{ weight: 0.1 },
+{ visibility: "on" } ] } ,
+
+{ featureType: "water",
+stylers:
+[
+{ color: "#000000" },
+{ visibility: "on" } ] } ,
+
+
+{ featureType: "landscape.man_made",
+stylers:
+[
+{ "weight": 0.7 },
+{ visibility: "on" },
+{ "visibility": "on" },
+{ "color": "#ff5500" }
+] } ,
+
+];
+
+
+
+
+///////////// Freistaat ///////////
+
+var Freistaat = [
+
+{ featureType: "road.highway",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ hue: "#ff0000" },
+{ saturation: 20 } ] } ,
+
+
+
+{ featureType: "road",
+elementType: "geometry.stroke",
+stylers:
+[
+{ saturation: 1 },
+{ hue: "#00ff88" },
+{ weight: 0.5 },
+{ color: "#1e4632" },
+{ lightness: 30 },
+{ visibility: "on" } ] } ,
+
+{ featureType: "water",
+stylers:
+[
+{ color: "#808080" },
+{ weight: 1 },
+{ visibility: "on" } ] } ,
+
+
+{ featureType: "landscape",
+elementType: "geometry.fill",
+stylers:
+[
+{ weight: 0.1 },
+{ visibility: "on" },
+{ color: "#288050" },
+{ invert_lightness: true },
+{ lightness: 10 } ] } ,
+
+];
+
+
+
+///////////////////Wirtschaft Indien//////////
+
+var Wirtschaft = [
+{ elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ lightness: 80 },
+{ color: "#fff68f" } ] },
+
+{ featureType: "road.highway",
+elementType: "labels.icon",
+stylers:
+[
+{ "visibility": "off" } ] },
+
+{ featureType: "road.highway",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#ff8c69" } ] },
+
+{ featureType: "road.arterial",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ weight: 0.4 },
+{ color: "#a2cd5a" } ] },
+
+{ featureType: "water",
+elementType: "geometry.fill", stylers:
+[ { visibility: "on" },
+{ color: "#3299cc" },
+{ lightness: 60 } ] },
+
+{ featureType: "administrative", elementType: "labels.text",
+stylers:
+[
+{ visibility: "on" },
+{ weight: 0.1 },
+{ color: "#698b22" } ] },
+
+{ featureType: "poi",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+];
+
+
+
+////////////////////////////ORANGE///////////////
+
+var Orange = [
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#7f007f" } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.text",
+stylers:
+[
+{ color: "#ff4040" },
+{ weight: 0.1 },
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#ff1493" } ] },
+
+{ featureType: "landscape.natural",
+stylers:
+[
+{ visibility: "on" },
+{ lightness: 80 },
+{ color: "#ffb90f" } ] },
+
+{ featureType: "landscape.natural",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" } ] },
+
+
+];
+
+
+
+//////////////////////GRAU/////////////////////
+
+var Grau = [
+
+{ elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#5c5c5c" } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text",
+stylers:
+[
+{ visibility: "on" },
+{ weight: 0.1 },
+{ color: "#ffd700" },
+{ lightness: 50 } ] },
+
+{ featureType: "poi",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "transit.station",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.neighborhood",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#0000ee" },
+{ lightness: 80 } ] },
+
+{ featureType: "landscape.natural",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#858585" } ] },
+
+];
+
+
+
+////////////////////SPORT//////////////////////////
+
+
+var Sport = [
+
+{ elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#ffd700" },
+{ lightness: 40 } ] },
+
+{ featureType: "landscape.natural",
+elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#cd3700" },
+{ lightness: 70 } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ weight: 0.5 },
+{ color: "#ff0000" } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.fill",
+stylers:
+[
+{ visibility: "on" },
+{ weight: 0.1 },
+{ lightness: 50 },
+{ color: "#545454" } ] },
+
+{ featureType: "poi",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#00e0ff" },
+{ lightness: 40 } ] },
+
+];
+
+
+//////////////////////////////LUTHER////////////////////
+
+
+var Luther = [
+
+{ elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#3299cc" },
+{ lightness: 70 } ] },
+
+{ featureType: "landscape.natural",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#8e6b23" },
+{ lightness: 45 } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#8b1a1a" },
+{ lightness: 50 } ] },
+
+{ featureType: "water",
+elementType: "labels",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.stroke",
+stylers:
+[
+{ color: "#808080" },
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.text.stroke",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.neighborhood",
+stylers:
+[
+{ visibility: "off" } ] },
+
+];
+
+
+//////////////////////NATUR///////////////////////
+
+
+var Natur = [
+
+{ elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ invert_lightness: true },
+{ saturation: 85 },
+{ lightness: 20 } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.stroke",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.stroke",
+stylers:
+[
+{ lightness: 40 },
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#00cdcd" } ] },
+
+{ featureType: "water",
+elementType: "labels.text.fill",
+stylers:
+[
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels.icon",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#7cfc00" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.fill",
+stylers:
+[
+{ visibility: "on" },
+{ color: "#7cfc00" } ] },
+
+{ featureType: "road.arterial",
+stylers:
+[
+{ visibility: "off" } ] },
+
+];
+
+
+
+
+//////////////////////LOS ANGELES//////////////////////////////
+
+var Los_Angeles = [
+
+
+{ elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ invert_lightness: true },{ saturation: 85 },
+{ lightness: 20 } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.stroke",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.stroke",
+stylers: [
+{ lightness: 40 },
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ color: "#00cdcd" } ] },
+
+{ featureType: "water",
+elementType: "labels.text.fill",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "on" },
+{ color: "#7cfc00" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#7cfc00" } ] },
+
+{ featureType: "road.arterial",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.neighborhood",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels.text",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.locality",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "transit.station",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+];
+
+
+
+////////////////////////////TOURISMUS///////////////
+
+
+
+var Tourismus = [
+
+{ featureType: "road.highway",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#ff7f00" },
+{ weight: 2.5 },
+{ lightness: 20 } ] },
+
+{ featureType: "road.arterial",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.stroke",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.stroke",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "administrative.locality",
+elementType: "labels.text.fill",
+stylers: [
+{ color: "#cdad00" },
+{ visibility: "on" },
+{ lightness: 10 } ] }
+
+];
+
+
+
+//////////////////////////ERFURT/////////////
+
+
+var Erfurt = [
+
+{ featureType: "landscape.man_made",
+stylers: [
+{ visibility: "on" },
+{ color: "#cd950c" },
+{ lightness: 70 } ] },
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#a0522d" },
+{ lightness: 40 } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+stylers: [
+{ visibility: "on" },
+{ color: "#436eee" },
+{ lightness: 60 } ] },
+
+{ featureType: "road",
+elementType: "geometry.stroke",
+stylers: [
+{ visibility: "on" },
+{ color: "#522d00" },
+{ lightness: 20 } ] },
+
+{ featureType: "transit.station",
+stylers: [
+{ visibility: "off" } ] },
+
+];
+
+//////////////////////////////ERFURT_LUTHER//////////////////////
+
+var Erfurt_Luther = [
+
+{ featureType: "landscape.man_made",
+stylers: [
+{ visibility: "on" },
+{ color: "#36648b" },
+{ lightness: 89 } ] },
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#8b4778" },
+{ lightness: 30 } ] },
+
+{ featureType: "road",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "poi",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry.stroke",
+stylers: [
+{ color: "#63b8ff" },
+{ lightness: 60 },
+{ visibility: "on" } ] },
+
+{ featureType: "road",
+elementType: "geometry.stroke",
+stylers: [
+{ color: "#8b4778" },
+{ lightness: 40 },
+{ visibility: "off" } ] },
+
+{ featureType: "transit.station",
+stylers: [ { visibility: "off" } ] },
+
+];
+
+
+//////////////////////////SPORT_ZWEI/////////////////////
+
+
+var Sport_zwei = [
+
+{ stylers: [
+{ hue: "#ff2200" } ] },
+
+{ featureType: "road",
+elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ color: "#6b8e23" },
+{ lightness: 40 },
+{ weight: 0.5 } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+];
+
+
+////////////////KLASSIK////////////////////
+
+var Klassik = [
+
+{ featureType: "poi",
+stylers: [
+{ visibility: "on" },
+{ color: "#6495ed" },
+{ lightness: 70 } ] },
+
+{ featureType: "landscape.natural",
+stylers: [
+{ visibility: "on" },
+{ color: "#ffffe6" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#ffd700" } ] },
+
+{ featureType: "administrative",
+elementType: "labels.text.stroke",
+stylers: [
+{ color: "#808080" },
+{ visibility: "off" } ] },
+
+{ featureType: "administrative",
+elementType: "labels.text.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#6495ed" } ] },
+
+{ featureType: "poi",
+elementType: "labels",
+stylers: [
+{ visibility: "off" } ] },
+
+];
+
+
+////////////////////TOSKANA///////////////////
+
+var Toskana =[
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#ffd700" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ color: "#38b0d4" } ] },
+
+];
+
+
+////////////////SCHRILL//////////////////////
+
+
+var Schrill = [
+
+{ featureType: "poi",
+stylers: [
+{ visibility: "on" },
+{ color: "#458b00" },
+{ lightness: 23 } ] },
+
+{ featureType: "landscape.natural",
+stylers: [
+{ visibility: "on" },
+{ color: "#458500" },
+{ lightness: 90 } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "road",
+elementType: "geometry",
+stylers: [
+{ color: "#ffd700" },
+{ visibility: "simplified" } ] },
+
+{ featureType: "administrative",
+elementType: "labels.text.stroke",
+stylers: [
+{ lightness: 70 },
+{ visibility: "on" } ] },
+
+{ featureType: "administrative",
+elementType: "labels.text.fill",
+stylers: [
+{ color: "#ff4e00" },
+{ lightness: 10 },
+{ visibility: "on" } ] },
+
+{ featureType: "poi",
+elementType: "labels.text.stroke",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+stylers: [
+{ visibility: "on" },
+{ color: "#ffffff" } ] },
+
+];
+
+
+///////////////////////KUECHE/////////////
+
+var Kueche = [
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#ffd700" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [ { visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ color: "#70dbdb" },
+{ lightness: 10 } ] },
+
+{ featureType: "poi",
+stylers: [
+{ visibility: "on" },
+{ lightness: 70 } ] },
+
+{ featureType: "landscape",
+stylers: [
+{ visibility: "on" },
+{ saturation: 70 } ] },
+
+];
+
+
+
+
+/*
+komplex_engine.MapAdministrator.set_type("SATELLITE");
+komplex_engine.MapAdministrator.set_zoom(20);
+Map.search("50.960240766611456, 11.037583192277907");
+*/
+
+////////////////////////////LANDSCHAFT////////////////////////////
+
+var Landschaft = [
+
+{ featureType: "road",
+elementType: "geometry.fill",
+stylers: [
+{ visibility: "on" },
+{ color: "#7f00ff" },
+{ hue: "#ff3300" } ] },
+
+{ featureType: "road",
+elementType: "labels.icon",
+stylers: [
+{ visibility: "off" } ] },
+
+{ featureType: "water",
+elementType: "geometry",
+stylers: [
+{ visibility: "on" },
+{ color: "#007fff" },
+{ lightness: 20 } ] },
+
+{ featureType: "poi",
+elementType: "geometry",
+stylers: [
+{ lightness: 70 },
+{ visibility: "on" } ] },
+
+{ featureType: "landscape",
+stylers: [
+{ visibility: "on" },
+{ saturation: 70 } ] }
+
+];
+
+
+
+//////////////////////////////////////////////
+
+
+if (typeof (external_map) != "undefined") Map.mapCanvas = external_map.map;
+
+
+switch(input)
+{
+case "complex_landscape":
+Map.mapCanvas.setOptions({styles: complex_landscape});
+break;
+
+case "landscape":
+Map.mapCanvas.setOptions({styles: landscape});
+break;
+
+case "industrie":
+Map.mapCanvas.setOptions({styles: industrie});
+break;
+
+case "dark_landscape":
+Map.mapCanvas.setOptions({styles: styles3});
+break;
+
+case "Freistaat":
+Map.mapCanvas.setOptions({styles: Freistaat});
+break;
+
+case "Wirtschaft":
+Map.mapCanvas.setOptions({styles: Wirtschaft});
+break;
+
+case "Orange":
+Map.mapCanvas.setOptions({styles: Orange});
+break;
+
+case "Grau":
+Map.mapCanvas.setOptions({styles: Grau});
+break;
+
+case "Sport":
+Map.mapCanvas.setOptions({styles: Sport});
+break;
+
+case "Luther":
+Map.mapCanvas.setOptions({styles: Luther});
+break;
+
+case "Natur":
+Map.mapCanvas.setOptions({styles: Natur});
+break;
+
+case "Los_Angeles":
+Map.mapCanvas.setOptions({styles: Los_Angeles});
+break;
+
+case "Tourismus":
+Map.mapCanvas.setOptions({styles: Tourismus});
+break;
+
+case "Erfurt":
+Map.mapCanvas.setOptions({styles: Erfurt});
+break;
+
+case "Erfurt_Luther":
+Map.mapCanvas.setOptions({styles: Erfurt_Luther});
+break;
+
+case "Sport_zwei":
+Map.mapCanvas.setOptions({styles: Sport_zwei});
+break;
+
+case "Klassik":
+Map.mapCanvas.setOptions({styles: Klassik});
+break;
+
+case "Toskana":
+Map.mapCanvas.setOptions({styles: Toskana});
+break;
+
+case "Schrill":
+Map.mapCanvas.setOptions({styles: Schrill});
+break;
+
+case "Kueche":
+Map.mapCanvas.setOptions({styles: Kueche});
+break;
+
+case "Landschaft":
+Map.mapCanvas.setOptions({styles: Landschaft});
+break;
+
+}
+
+
+// Map.mapCanvas.setOptions({styles: industrie});
+
+}
+
+
+
+
+obj.init();
+
+}
+
+
+
+
+
+
+
+MicroFX.Toolbar = function(parent)
+{
+var obj = this;
+this.admin = parent;
+
+this.visible_entry = false;
+
+
+
+
+this.show_entry = function()
+{
+obj.visible_entry = true;
+
+$("#MicroEntry").animate({
+right: 0
+
+}, 200);
+
+}
+
+this.hide_entry = function()
+{
+obj.visible_entry = false;
+
+$("#MicroEntry").animate({
+right: "-21%"
+
+}, 200);
+}
+
+
+this.location_check = function()
+{
+var s = window.location.href;
+var re = new RegExp("lobby");
+check = s.search(re);
+
+if (check != -1) return "lobby";
+}
+
+
+this.init = function()
+{
+var s = '<div id = "MicroFX">';
+s += '<div id = "MicroToolbar">';
+
+s += '<div id = "MicroToolbar_Audio" title = "add audio"></div>';
+s += '<div id = "MicroToolbar_Video" title = "add video"></div>';
+s += '<div id = "MicroToolbar_Text" title = "add text"></div>';
+s += '<div id = "MicroToolbar_Map" title = "map styling"></div>';
+s += '<div id = "MicroToolbar_Link" title = "add link"></div>';
+s += '<div id = "MicroToolbar_Raphael" title = "add svg_graphic"></div>';
+s += '<div id = "MicroToolbar_Image" title = "add image"></div>';
+s += '<div id = "MicroToolbar_Engine" title = "add javascript"></div>';
+
+s += '<div id = "MicroToolbar_FX" title = "Animation hinzufügen / DRAG!"></div>';
+
+s += '<div id = "MicroToolbar_Zeitanzeige"></div>';
+
+s += '<div id = "MicroToolbar_PreviousEvent" title = "Sprung zum vorigen Event"></div>';
+s += '<div id = "MicroToolbar_NextEvent" title = "Sprung zum nächsten Event"></div>';
+
+
+s += '<div id = "MicroToolbar_Pattern" title = "neues Pattern erstellen"></div>';
+s += '<div id = "MicroToolbar_Track" title = "Track hinzufügen"></div>';
+
+
+s += '<div id = "MicroToolbar_Range"></div>';
+s += '<div id = "MicroToolbar_Play" title = "Play"></div>';
+s += '<div id = "MicroToolbar_Pause" title = "Pause"></div>';
+s += '<div id = "MicroToolbar_Stop" title = "Stop"></div>';
+s += '<div id = "MicroToolbar_Loop" title = "Loop-Ein/Aus "></div>';
+
+s += '<div id = "MicroToolbar_Animation" title = "Animations-Schalter"></div>';
+
+
+s += '<div id = "MicroToolbar_PatternInfo" title = "Einstellungen bearbeiten"></div>';
+
+
+s += '<div id = "MicroToolbar_MarkerUpdate"></div>';
+s += '<div id = "ToggleRessources"></div>';
+
+
+
+s += '<div id = "MicroToolbar_Zoom" class = "toolbar_zoom_in" title= "ZoomIn/Out"></div>';
+
+
+s += '<div id = "MicroToolbar_Refresh" title = "Reload des Effekts"></div>';
+
+s += '<div id = "MicroToolbar_Delete"></div>';
+
+
+// Das Suchefeld
+s += '<div id = "MicroToolbar_Search" title = "ProjektFilter">';
+s += '</div>';
+//
+
+
+
+
+s += '<div id = "MicroToolbar_Search_Field">';
+s += '<input type="text" id="MicroToolbarSearchPhrase" />';
+s += '<div id = "MicroToolbar_Search_Submit"></div>';
+s += '</div>';
+
+
+s += '<div id = "MicroToolbar_ProjectWindow">';
+s += '<div id = "MicroToolbar_TimeStretch" title = "TimeStretch"></div>';
+s += '<div id = "MicroToolbar_Save"></div>';
+s += '<div id = "MicroToolbar_Javascript" title = "Javascript"></div>';
+s += '<div id = "MicroToolbar_JavascriptUpload" title = "JavascriptUpload"></div>';
+s += '<div id = "MicroToolbar_Console" title = "Console"></div>';
+
+s += '<div id = "MicroToolbar_CSS" title = "CSS"></div>';
+s += '<div id = "MicroToolbar_CSSUpload" title = "CSSUpload"></div>';
+
+s += '<div id = "MicroToolbar_Control" title = "Konsistenzprüfung"></div>';
+
+s += '<div id = "MicroToolbar_Clone" title = "Klonierung von Events"></div>';
+s += '<div id = "MicroToolbar_Glue" title="Zusammenkleben von Events"></div>';
+
+s += '</div>';
+
+
+s += '<div id = "MicroToolbar_Project" title = "Toolbar"></div>';
+s += '<div id = "MicroToolbar_Load" title = "Effekte einladen"></div>';
+
+s += '<div id = "MicroToolbar_Shrink" title = "Minimieren/Maximieren"></div>';
+
+
+// s += '<input type= "text" maxlength="6″ size="6″ id= "colorpickerField" value="select color" />';
+
+s += '<select name = selector id = "MicroToolbar_pattern_select" onchange="PatternChoice(this);"><option>Pattern</option></select>';
+
+
+
+s += '</div>';
+s += '<div id = "MicroToolbar_Legende"></div>';
+
+s += '<div id = "MicroFX_Trax"></div>';
+
+s += '</div>';
+
+s += '<div id = "MicroEntry"><div id = "MicroEntryField"></div></div>'
+
+s += '<div id = "Developer"></div>';
+
+
+$("body").append(s);
+
+
+
+
+$("#MicroToolbar_Delete").click(function()
+{
+// alert("CSS erzeugen");
+MicroAdministrator.delete_effect();
+});
+
+
+$("#ToggleRessources").click(function()
+{
+MicroAdministrator.ressource_toggle();
+});
+
+
+$("#MicroToolbar_CSS").click(function()
+{
+// alert("CSS erzeugen");
+MicroAdministrator.css_toggle();
+});
+
+
+$("#MicroToolbar_CSSUpload").click(function()
+{
+MicroAdministrator.css_upload();
+});
+
+
+
+
+$("#MicroToolbar_JavascriptUpload").click(function()
+{
+MicroAdministrator.javascript_upload();
+});
+
+
+$("#MicroToolbar_MarkerUpdate").click(function()
+{
+MicroAdministrator.marker_update();
+});
+
+
+$("#MicroToolbar_PreviousEvent").click(function(){
+
+MicroAdministrator.player.previous_event();
+});
+
+$("#MicroToolbar_NextEvent").click(function(){
+
+MicroAdministrator.player.next_event();
+});
+
+
+$("#MicroToolbar_Project").click(function(){
+
+$("#MicroToolbar_ProjectWindow").toggle();
+})
+
+
+
+$("#MicroToolbar_Zoom").click(function(){
+MicroAdministrator.zoom_toggle();
+})
+
+
+$("#MicroToolbar_Clone").click(function(){
+MicroAdministrator.clone_events();
+})
+
+
+$("#MicroToolbar_Glue").click(function(){
+MicroAdministrator.glue_events();
+});
+
+$("#MicroToolbar_Search").click(function(){
+
+$("#MicroToolbar_Search_Field").toggle();
+});
+
+
+$("#MicroToolbar_Control").click(function(){
+
+MicroAdministrator.project_consistency();
+
+});
+
+
+
+
+$("#MicroFX_Trax").mousedown(function(event){
+
+if (MicroAdministrator.shift_key == true)
+{
+MicroAdministrator.multi_select = true;
+MicroAdministrator.set_multi_selector(event);
+}
+
+if (MicroAdministrator.zoom_key == true)
+{
+MicroAdministrator.multi_select = true;
+MicroAdministrator.set_multi_selector(event);
+}
+
+});
+
+$("#MicroFX_Trax").mousemove(function(event){
+
+if (MicroAdministrator.shift_key == true && MicroAdministrator.multi_select == true)
+{
+MicroAdministrator.multi_selector.set_dimension(event);
+}
+
+if (MicroAdministrator.zoom_key == true)
+{
+MicroAdministrator.multi_selector.set_dimension(event);
+}
+
+});
+
+
+
+$("#MicroFX_Trax").mouseup(function(){
+
+if (MicroAdministrator.shift_key == true)
+{
+MicroAdministrator.multi_select = false;
+MicroAdministrator.multi_selector.get_selection();
+}
+
+if (MicroAdministrator.zoom_key == true)
+{
+MicroAdministrator.multi_select = false;
+MicroAdministrator.multi_selector.get_zoom();
+}
+
+});
+
+
+
+
+$("#MicroToolbar_Refresh").click(function(){
+
+if (MicroAdministrator.pattern) MicroAdministrator.total_refresh();
+/*
+
+if (MicroAdministrator.pattern)
+{
+id = MicroAdministrator.pattern.attributes.id;
+
+var url = "/authoring/micro_patterns/" + id;
+
+
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+
+MicroAdministrator.player.clean_up();
+MicroAdministrator.painter.clear_tracks();
+
+var p = new MicroFX.Player(0,0);
+MicroAdministrator.player = p;
+
+
+p.get_pattern(msg, false);
+
+
+MicroAdministrator.pattern = p.pattern;
+MicroAdministrator.painter.paint_all_tracks();
+
+// MicroAdministrator.update_player();
+});
+
+
+}
+*/
+});
+
+
+
+
+$("#MicroToolbar_Search_Submit").click(function(){
+
+v = $("#MicroToolbarSearchPhrase").val();
+var url = "/authoring/micro_patterns?search=" + v;
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+var s = "";
+
+for (i = 0; i < msg.length; i++)
+{
+
+p = new MicroFX.Pattern();
+
+p.set({
+id : msg[i].id,
+key : msg[i].key,
+description: msg[i].description,
+duration: msg[i].duration,
+});
+
+
+s += '<option>' + msg[i].key + '</option>';
+
+MicroAdministrator.pattern_list.add(p);
+
+}
+
+
+$("#MicroToolbar_pattern_select").html(s);
+$("#MicroToolbar_Search_Field").toggle();
+
+});
+
+
+
+
+
+});
+
+
+
+$("#MicroToolbar_PatternInfo").click(function(){
+
+if (MicroAdministrator.pattern)
+{
+var url = "/authoring/micro_patterns/" + MicroAdministrator.pattern.attributes.id + "/edit";
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+MicroAdministrator.toolbar.show_entry();
+$("#MicroEntryField").html(msg.form_html);
+});
+
+
+
+
+}
+else alert("noch kein Pattern geladen");
+})
+
+
+$("#MicroToolbar_Range").click(function(){
+
+if (MicroAdministrator.player.range_playback == true)
+{
+MicroAdministrator.painter.clear_range();
+MicroAdministrator.player.clear_range();
+$("#MicroToolbar_Range").removeClass("AktiveKlasse");
+}
+})
+
+
+
+$("#MicroToolbar_Play").click(function(){
+
+MicroAdministrator.player.meta_play();
+})
+
+
+$("#MicroToolbar_Pause").click(function(){
+
+MicroAdministrator.player.pause();
+})
+
+$("#MicroToolbar_Stop").click(function(){
+
+MicroAdministrator.player.stop();
+MicroAdministrator.player.animation_queue.refresh();
+})
+
+
+$("#MicroToolbar_Animation").click(function(){
+
+if (MicroAdministrator.animation_mode == false)
+{
+MicroAdministrator.animation_mode = true;
+$("#MicroToolbar_Animation").addClass('AktiveKlasse');
+}
+else
+{
+MicroAdministrator.animation_mode = false;
+$("#MicroToolbar_Animation").removeClass('AktiveKlasse');
+}
+// alert("sollte die Animation auf true setzen");
+});
+
+
+
+$("#MicroToolbar_Loop").click(function(){
+
+if (MicroAdministrator.player.loop == false)
+{
+MicroAdministrator.player.loop = true;
+$(this).addClass('AktiveKlasse');
+}
+else
+{
+MicroAdministrator.player.loop = false;
+$(this).removeClass('AktiveKlasse');
+}
+
+});
+
+
+
+$("#MicroToolbar_FX").attr("type", "fx");
+
+var vx = $("#MicroToolbar_FX").position().left;
+var vy = $("#MicroToolbar_FX").position().top;
+$("#MicroToolbar_FX").attr("x", vx );
+$("#MicroToolbar_FX").attr("y", vy );
+
+$("#MicroToolbar_FX").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+
+// alert("ich sollte einen neuen Effekt erstellen " + MicroAdministrator.actual_event.attributes.typus);
+var call = "MicroAdministrator.new_animation()";
+window.setTimeout(call, 100);
+}
+
+});
+
+
+
+$("#MicroToolbar_FX").click(function(){
+
+//alert("CLICK");
+
+var url = "/authoring/micro_animations/new"
+
+$.ajax({
+type : "GET",
+url : url
+
+}).done(function(msg) {
+
+MicroAdministrator.toolbar.show_entry();
+$("#MicroEntryField").html(msg.form_html);
+});
+
+
+})
+
+
+//
+
+$("#MicroToolbar_Audio").attr("type", "audio");
+
+var vx = $("#MicroToolbar_Audio").position().left;
+var vy = $("#MicroToolbar_Audio").position().top;
+$("#MicroToolbar_Audio").attr("x", vx );
+$("#MicroToolbar_Audio").attr("y", vy );
+
+$("#MicroToolbar_Audio").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+$("#MicroToolbar_Map").attr("type", "map");
+
+var vx = $("#MicroToolbar_Map").position().left;
+var vy = $("#MicroToolbar_Map").position().top;
+$("#MicroToolbar_Map").attr("x", vx );
+$("#MicroToolbar_Map").attr("y", vy );
+
+$("#MicroToolbar_Map").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+$("#MicroToolbar_Video").attr("type", "video");
+
+vx = $("#MicroToolbar_Video").position().left;
+vy = $("#MicroToolbar_Video").position().top;
+$("#MicroToolbar_Video").attr("x", vx );
+$("#MicroToolbar_Video").attr("y", vy );
+
+
+
+$("#MicroToolbar_Video").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+
+
+$("#MicroToolbar_Text").attr("type", "text");
+
+vx = $("#MicroToolbar_Text").position().left;
+vy = $("#MicroToolbar_Text").position().top;
+$("#MicroToolbar_Text").attr("x", vx );
+$("#MicroToolbar_Text").attr("y", vy );
+
+$("#MicroToolbar_Text").draggable({
+stop: function(event, ui)
+{
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+window.setTimeout(call, 50);
+
+
+}
+
+});
+
+
+
+$("#MicroToolbar_Link").attr("type", "link");
+
+var vx = $("#MicroToolbar_Link").position().left;
+var vy = $("#MicroToolbar_Link").position().top;
+$("#MicroToolbar_Link").attr("x", vx );
+$("#MicroToolbar_Link").attr("y", vy );
+
+$("#MicroToolbar_Link").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+///
+$("#MicroToolbar_Raphael").attr("type", "raphael");
+
+var vx = $("#MicroToolbar_Raphael").position().left;
+var vy = $("#MicroToolbar_Raphael").position().top;
+$("#MicroToolbar_Raphael").attr("x", vx );
+$("#MicroToolbar_Raphael").attr("y", vy );
+
+$("#MicroToolbar_Raphael").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+
+///
+$("#MicroToolbar_Engine").attr("type", "engine");
+
+var vx = $("#MicroToolbar_Engine").position().left;
+var vy = $("#MicroToolbar_Engine").position().top;
+$("#MicroToolbar_Engine").attr("x", vx );
+$("#MicroToolbar_Engine").attr("y", vy );
+
+$("#MicroToolbar_Engine").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+$("#MicroToolbar_Image").attr("type", "image");
+
+var vx = $("#MicroToolbar_Image").position().left;
+var vy = $("#MicroToolbar_Image").position().top;
+$("#MicroToolbar_Image").attr("x", vx );
+$("#MicroToolbar_Image").attr("y", vy );
+
+$("#MicroToolbar_Image").draggable({
+stop: function(event, ui)
+{
+
+var s = $(this).attr("type");
+
+x = $(this).attr("x") + "px";
+y = $(this).attr("y") + "px";
+
+$(this).css("left", x);
+$(this).css("top", y);
+
+var call = "MicroAdministrator.new_event('" + s + "'," + event.clientX + ")";
+
+
+window.setTimeout(call, 50);
+}
+
+});
+
+
+
+//
+
+$("#MicroToolbar_Video").draggable();
+
+
+$("#MicroToolbar_Track").click(function (){
+MicroAdministrator.new_track();
+});
+
+$("#MicroToolbar_Pattern").click(function (){
+MicroAdministrator.new_pattern();
+});
+
+
+
+$("#MicroToolbar_TimeStretch").click(function(){
+
+// MicroAdministrator.time_stretch();
+var s = "MicroAdministrator.time_stretch()";
+MicroAdministrator.dialog.set_command("Geben Sie den Faktor ein", s);
+MicroAdministrator.dialog.show();
+
+
+});
+
+
+$("#MicroToolbar_Save").click(function (){
+MicroAdministrator.save();
+});
+
+
+$("#MicroToolbar_Javascript").click(function (){
+MicroAdministrator.javascript_toggle();
+});
+
+
+$("#MicroToolbar_Load").click(function (){
+MicroAdministrator.load();
+});
+
+$("#MicroToolbar").click(function (){
+MicroAdministrator.toolbar.hide_entry();
+});
+
+
+$("#MicroToolbar_Shrink").click(function(){
+
+MicroAdministrator.toggle_display();
+
+/*
+var c = $("#MicroFX").height();
+var b = $("#MicroFX").css("bottom");
+
+if (b == "0px")
+{
+target = (c -32)*-1;
+$("#MicroFX").animate({bottom: "-450px"}, 500);
+}
+else $("#MicroFX").animate({bottom: "0px"}, 500);
+*/
+})
+
+
+}
+
+this.range_bar = null;
+
+
+this.legend_interaction = function()
+{
+if (obj.range_bar == null)
+{
+// obj.legende_paper.set(g, animation_item).drag(microfx_anim_move, microfx_anim_start, microfx_anim_up);
+}
+}
+
+
+
+obj.init();
+}
+
+MicroFX.LegendInfo = function(duration)
+{
+this.duration = duration/1000;
+this.min = 6; // Anzahl der
+this.max = 15;
+
+this.calculate = function()
+{
+if (duration > 0 <= 1)
+{
+alert("kleiner als eine Sekunde")
+}
+
+}
+
+
+obj.calculate();
+}
+
+
+MicroFX.Painter = function(parent)
+{
+var obj = this;
+this.admin = parent;
+
+this.height = 0;
+this.width = 0;
+this.top = 0;
+
+this.max_track = 6;
+
+this.track_height = 100;
+
+this.paper = null;
+this.legend_paper = null;
+
+this.animation_paper = null;
+this.animation_legend_paper = null;
+
+this.elements = new Array();
+this.legend_elements = new Array();
+this.event_elements = new Array();
+
+this.animation_legend_elements = new Array();
+this.animation_elements = new Array();
+
+this.rapheal_toolbox = null;
+
+
+this.range = null;
+
+
+
+
+
+this.demo_playback = function(name)
+{
+
+var s = '<div id = "DemoKonsole">';
+
+s += '<div id = "DemoPlay" class = "DemoPlay"></div>';
+s += '<div id = "DemoStop" class = "DemoStopAktiv"></div>';
+
+s += '<div id = "DemoPreviousEvent"></div>';
+s += '<div id = "DemoNextEvent"></div>';
+
+s += '</div>';
+
+$("body").append(s);
+
+$("#DemoKonsole").draggable();
+
+$("#DemoNextEvent").click(function(){
+
+microfx_demonstration.next_event();
+
+});
+
+
+$("#DemoPreviousEvent").click(function(){
+
+microfx_demonstration.previous_event();
+
+});
