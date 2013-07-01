@@ -179,7 +179,7 @@ Timeline.Bar = function()
 		
 			
 		
-		$('#leftbar').draggable({
+		/*$('#leftbar').draggable({
 
 	        axis : "x",
 	
@@ -217,21 +217,21 @@ Timeline.Bar = function()
 	
 	        	console.log("Stopped");
         	}
-    	});
+    	});*/
 		
 		
 		
 		$('#leftarrow').click(function(){
 			
 			
-			self.moveBars(0,0,"left");
+			self.moveBars(1,0,"left");
 			
 		});
 		
 		$('#rightarrow').click(function(){
 			
 			
-			self.moveBars(0,0,"right");
+			self.moveBars(0,1,"right");
 			
 		});
 		
@@ -280,7 +280,7 @@ Timeline.Bar = function()
 			
 				
 				tsunits = - self.atomic_Unit * self.movs_Per_Click;
-				
+				tsunits = tsunits * tsleft;
 				
 				//tsunits = - self.atomicUnit * self.zoom_Value;/*tsunits= self.date_Center_Number - self.atomic_Unit * self.zoom_Value;				
 				//tsunits= tsunits - self.date_Center_Number;
@@ -291,6 +291,7 @@ Timeline.Bar = function()
 			case "right":
 				
 				tsunits = + self.atomic_Unit * self.movs_Per_Click;
+				tsunits = tsunits * tsright;
 				//self.date_Center_Number = self.date_Center_Number + self.atomic_Unit * self.zoom_Value;
 				//tsunits=self.date_Center_Number;
 				self.moveDistance(tsunits);
@@ -327,11 +328,11 @@ Timeline.Bar = function()
 			
 			$("#actual_date_text").text(self.dateformat(self.range.center));
 						
-			
+			self.resetBars();
 			//alert($("#leftbar_container").css("width"));
 			//alert(parseInt($("#leftbar_container").css("width"))/self.number_Visible_Units);
 			//alert(distance);
-			self.resetBars();
+			
 			/*alert( moveL - oriL);
 			alert(distance); 
 			*/
@@ -401,30 +402,36 @@ Timeline.Bar = function()
 						
 			left_unit = self.leftpaper.rect(actualPositionLeft, 0, self.pixels_Per_Unit, h);
 	    	left_unit.attr("fill", "purple");
-	    	left_unit.node.id = "left_date_unit"+i;
+	    	//left_unit.node.id = "left_date_unit"+i;
 	    	 	
 	    	self.dateUnitsLeftArray.push(left_unit);
 	    	    	
 	    	left_unit = self.leftpaper.text(actualPositionLeft+30, 25, self.dateformat(actualDateLeft)).attr({fill: '#000000'});
-	       	left_unit.node.id = "left_text_unit"+i;
+	       	left_unit.node.id = actualDateLeft;
+	       	//left_unit.node.className += "left_text_class";
+	    	left_unit.node.setAttribute("class","date_text_left");
 	    	
-	    	
-	    		$("#left_text_unit"+i).css("font-size", "20px");
+	 
+	    		    		
 	    		    	
 	    	right_unit = self.rightpaper.rect(actualPositionRight, 0, self.pixels_Per_Unit, h);
 	    	right_unit.attr("fill", "red");
-	    	right_unit.node.id = "right_date_unit"+i;
+	    	//right_unit.node.id = "right_date_unit"+i;
 	    	
 	    	self.dateUnitsRightArray.push(right_unit);
 	    	
 	    
 	    	
 	    	right_unit = self.rightpaper.text(actualPositionRight+30, 25, self.dateformat(actualDateRight)).attr({fill: '#000000'});
-	        right_unit.node.id = "right_text_unit"+i;
+	       	right_unit.node.id = actualDateRight;
+	        right_unit.node.setAttribute("class","date_text_right");
+	        //right_unit.node.id = "right_text_unit"+i;
 	        
-	        	$("#right_text_unit"+i).css("font-size", "20px");
+	        	//$("#right_text_unit"+i).css("font-size", "20px");
+	        
 		}
 		
+		$(".date_text").css("font-size","100%");
 		
 	}
 		
@@ -477,6 +484,8 @@ Timeline.Bar = function()
 		
 		self.createDateUnits(self.number_Total_Units);
 		
+		self.moveToDateOnClickEventListeners();
+		
 	}
 	
 	/*this.moveDateUnits = function(direction) 
@@ -496,43 +505,54 @@ Timeline.Bar = function()
 		
 	}*/
 
-	this.updateZoom = function()
+	this.updateZoom = function(speed)
 	{
 		
+		if(speed<0)
+		{
+			if(self.zoom_Value>=1) self.zoom_Value += speed;
+		}
+		else if(speed>0)
+		{
+			if(self.zoom_Value<=4) self.zoom_Value += speed;
+		}
+				
+				
 		
 		switch(self.zoom_Value)
 		{
 			case 1:
-				self.number_Visible_Units = 4;
-				
+				self.number_Visible_Units = 8;
+					
 				break;
 			case 2:
-				self.number_Visible_Units = 8;
+				self.number_Visible_Units = 7;
 				break;
 			case 3:
-				self.number_Visible_Units = 10;
+				self.number_Visible_Units = 6;
 				break;
 			case 4:
-				self.number_Visible_Units = 12;
+				self.number_Visible_Units = 4;
 				break;
 			default:
-				self.number_Visible_Units = 14;
-				self.zoom_Value = 0;
+				/*self.number_Visible_Units = 8;
+				self.zoom_Value = 0;*/
 				break;
-			
+				
 		}
 		
-		self.zoom_Value +=1;
+		//self.zoom_Value +=1;
 		self.number_Total_Units = self.number_Visible_Units * 3;
 		self.moveBars(0,0,0);
 		
 		
+		
 	}
 
+	
 	this.updatePixels_Per_Unit = function() 
 	{
-		
-		
+			
 		self.pixels_Per_Unit = (parseFloat($('#leftbar').css("width"))/self.number_Total_Units);
 				
 	}
@@ -553,6 +573,30 @@ Timeline.Bar = function()
 		self.range.center += tsunits;//(self.range.from + ((self.range.to - self.range.from)*0.5) );	
 
 	}
+
+
+	this.moveToDateOnClickEventListeners = function()
+	{
+		$(".date_text_left").click(function(){
+			
+			var id = parseInt($(this).attr("id"));
+			
+			self.moveBars(self.range.center/self.atomic_Unit - id/self.atomic_Unit,0,"left");
+			
+			
+			
+			
+		});
+		
+		$(".date_text_right").click(function(){
+			
+			var id = parseInt($(this).attr("id"));
+			
+			self.moveBars(0,id/self.atomic_Unit-self.range.center/self.atomic_Unit,"right");
+			
+			
+		});
+	}	
 
 	this.init = function()
 	{
@@ -588,8 +632,8 @@ Timeline.Bar = function()
 		
 		self.createDateUnits(self.number_Total_Units);
 		
-		$('#actual_date_text').click(self.updateZoom);
-				
+		self.moveToDateOnClickEventListeners();
+								
 		tm = this;
 	
 	}
@@ -598,7 +642,9 @@ Timeline.Bar = function()
 	self.init();	
 }
 
-Timeline.DateUnit = function()
+
+
+/*Timeline.DateUnit = function()
 {
 	var self = this;
 	
@@ -618,6 +664,6 @@ Timeline.DateUnit = function()
 	
 	self.init();
 
-}
+}*/
 
 var tm;
